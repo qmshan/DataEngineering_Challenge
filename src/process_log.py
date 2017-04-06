@@ -49,6 +49,7 @@ def timeReverse(stamp):
 
 """
 The function to parse a single line log into program specified structure
+Many corner cases included, as parsing failure may occur if a log line is not irregular .
 """    
 def parse(line):  
     if not checkValid(line):
@@ -113,7 +114,7 @@ that have accessed the site.
 class TopIP(object):
     def __init__(self, fname):
         self.fname = fname
-        self.dict = {}
+        self.dict = {} # hash is used to store the visit time of each ip
         return
     
     def getItem(self, item):
@@ -126,21 +127,21 @@ class TopIP(object):
         
     def output(self):
         heap = []
-        heapq.heapify(heap)
+        heapq.heapify(heap) #priority Q is used to store in the ip with the most visit time.
         
         topIpList = []
         for ip, count in self.dict.items():
             if len(heap) < 10:
                 heapq.heappush(heap, (count, ip))
             else:
-                if count >= heap[0][0]:
+                if count >= heap[0][0]: #if visit time the ip >= the smallest of the current top 10 ip
                     heapq.heappop(heap)
-                    heapq.heappush(heap, (count, ip))
-        while heap:
+                    heapq.heappush(heap, (count, ip))  #replace the smallest with the current ip
+        while heap: # write current heap result into an array in ascending order
             count, ip = heapq.heappop(heap)
             topIpList.append(ip + "," + str(count))
         f = open(self.fname, 'w')
-        while topIpList:
+        while topIpList: #write to file in descending order
             currline = topIpList.pop()
             f.write(currline + "\n")
         f.close()
@@ -149,6 +150,7 @@ class TopIP(object):
 """
 Feature 2: 
 Identify the top 10 resources on the site that consume the most bandwidth. 
+The feature works in a very similar way with the the first feature.
 """
 class TopResource(object):
     def __init__(self, fname):
@@ -194,8 +196,8 @@ class BusyTime(object):
     def __init__(self, fname):
         self.fname = fname
         self.dq = deque([]) #deque to save {time, count, timstamp} for at most an hour
-        self.heap = [] #heap for top 10 as {count, tm_sec, timestamp}
-        self.total = 0
+        self.heap = [] #heap for top 10 as {count, -tm_sec, timestamp}
+        self.total = 0 #  visits within each 60 min window,
         heapq.heapify(self.heap)
         
     def getItem(self, item):
@@ -204,7 +206,7 @@ class BusyTime(object):
         #remove item outside of 3600 sec time window
         while self.dq and (tm_sec - self.dq[0][0]) >= 3600:
             if len(self.heap) < 10:
-                heapq.heappush(self.heap, (self.total, -self.dq[0][0], self.dq[0][2]))
+                heapq.heappush(self.heap, (self.total, -self.dq[0][0], self.dq[0][2])) #negative value to ensure when different window has the same visits time, we can list the time in ascending order
             else:
                 if self.total > self.heap[0][0]:
                     heapq.heappop(self.heap)
@@ -278,14 +280,23 @@ class BlockList(object):
             else:
                 self.UpdateFail(ip, time)
         return
-        
+    
+    """
+    1) Update dqBlock and blocklist by removing items older than 300 secs
+    2) Check if new ip stays in blocklist
+    """
     def checkBlock(self, ip, time):
+        #update current block list and check if ip is in the list
         while self.dqBlock and time - self.dqBlock[0][0] >= 300:
             del self.blockList[self.dqBlock[0][1]]
             self.dqBlock.popleft()
         return ip in self.blockList
     
+    """
+    Update dqFail and failCounter when the coming login is success
+    """
     def FailReset(self, ip):
+        #reset the 20s fail count after a successful login
         if ip not in self.failCounter:
             return
         else:
@@ -295,7 +306,14 @@ class BlockList(object):
                     del self.dqFail[i][1][ip]
         return
     
+    """
+    Called only when the coming login fails.
+    1) Update dqFail and failCounter by removing record older than 20 secs
+    2) Put the coming login into failCounter and dqFail
+    3) Check if the coming IP has failed 3 times
+    """
     def UpdateFail(self, ip, time):
+        
         #Update dqFail and failCounter by removing items older than 20 sec
         while self.dqFail and time - self.dqFail[0][0] >= 20:
             dict = self.dqFail[0][1]
@@ -347,7 +365,7 @@ print 'hour file is: ', hourfile
 print 'block file is: ', blockfile
 f = open(logfile)
 
-#Initial all features
+#Initialize all features
 print 'Initial all features...'
 ti = TopIP(hostfile)
 tr = TopResource(resfile)
