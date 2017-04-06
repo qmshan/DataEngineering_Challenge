@@ -24,7 +24,7 @@ python ./src/process_log.py <input_log.txt> <output_top_ten_hosts.txt> <output_t
 
 ## Design
 
-This program is develeloped following object-oriented design, and each features is wrapped as a indepdent service classes. When program running, each line of data stream will firstly be parsered to a log data structure. Next, this log structure is processed by four classes to achieve different features. Finally each service classes will output result seperatly.   
+This program is develeloped following object-oriented design, and each feature is wrapped as an indepdent service class. When program runs, each line of data stream will first be parsed into a log data structure. Next, this log structure is processed by four classes to achieve different features. Finally each service class will output result individually.   
 
 
 
